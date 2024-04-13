@@ -300,12 +300,13 @@ class sc3k(nn.Module):
             return kp1
 
 
-@hydra.main(config_path='config', config_name='config')
+@hydra.main(config_path='config', config_name='config', version_base=None)
 def main(cfg):
     cfg.split = 'train'
     pc = torch.randn(5, 2048, 3)
     data = [pc, pc, pc, pc]
-    model = sc3k(cfg).cuda()
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = sc3k(cfg).to(device) # cuda()   # unsupervised network
     # pdb.set_trace()
     kp1, kp2 = model(data)
     print(kp1.shape, kp1.shape)

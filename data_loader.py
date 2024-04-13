@@ -44,8 +44,8 @@ def naive_read_pcd(path):
     lines = lines[idx:]
     lines = [line.rstrip().split(' ') for line in lines]
     data = np.asarray(lines)
-    pc = np.array(data[:, :3], dtype=np.float)
-    colors = np.array(data[:, -1], dtype=np.int)
+    pc = np.array(data[:, :3], dtype=np.float64)
+    colors = np.array(data[:, -1], dtype=np.int64)
     colors = np.stack([(colors >> 16) & 255, (colors >> 8) & 255, colors & 255], -1)
     return pc, colors
 
@@ -226,7 +226,7 @@ class canonical_data_loader(torch.utils.data.Dataset):
         self.transformed_pcds = pointCloud_lst
         self.mesh_names = mesh_names
         print("\nmesh_names: {}".format(len(self.mesh_names)))
-        print("\point clouds: {}".format(len(self.transformed_pcds)))
+        print("\npoint clouds: {}".format(len(self.transformed_pcds)))
 
 
     def __getitem__(self, idx):
@@ -345,7 +345,7 @@ def test_imgs_loader(cfg):
 
 
 
-@hydra.main(config_path='config', config_name='config')
+@hydra.main(config_path='config', config_name='config', version_base=None)
 def main(cfg):
     omegaconf.OmegaConf.set_struct(cfg, False)
     test_imgs_loader(cfg)

@@ -22,7 +22,9 @@ def test_canonical_pose(cfg):
     test_dataset = KeypointDataset(cfg, 'test')
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=cfg.num_workers, drop_last=True)
 
-    model = network.sc3k(cfg).cuda()
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    model = network.sc3k(cfg).to(device)
     best_model_path = os.path.join(BASEDIR, cfg.data.best_model_path)
     model.load_state_dict(torch.load(best_model_path))
 
@@ -36,8 +38,8 @@ def test_canonical_pose(cfg):
             batch_pred = model(batch_pcd)
 
             keypoints.append(batch_pred[0].cpu().numpy())
-            coverage_.append(function_bank.coverage(batch_pred, batch_pcd[0].cuda()).cpu().numpy()) # [10x3], [2048x3]
-            inclusivity_.append(torch.mean(function_bank.inclusivity(batch_pred[0], batch_pcd[0][0].cuda(), threshold=0.05)).cpu().numpy())  # [1x10x3], [1x2048x3]
+            coverage_.append(function_bank.coverage(batch_pred, batch_pcd[0].to(device)).cpu().numpy()) # [10x3], [2048x3]
+            inclusivity_.append(torch.mean(function_bank.inclusivity(batch_pred[0], batch_pcd[0][0].to(device), threshold=0.05)).cpu().numpy())  # [1x10x3], [1x2048x3]
 
             ''' Save the qualitative results'''
             if cfg.save_results and len(not_repeat) < 15:
@@ -60,7 +62,8 @@ def test_generic_pose(cfg):
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False,
                                                   num_workers=cfg.num_workers, drop_last=True)
 
-    model = network.sc3k(cfg).cuda()
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = network.sc3k(cfg).to(device)
     best_model_path = os.path.join(BASEDIR, cfg.data.best_model_path)
     model.load_state_dict(torch.load(best_model_path))
 
@@ -75,11 +78,11 @@ def test_generic_pose(cfg):
         for batch_id, batch_pcd in enumerate(tqdm(test_dataloader)):
             batch_pred, batch_pred2 = model(batch_pcd)
 
-            pose_error.append(function_bank.pose_loss(batch_pred, batch_pred2, batch_pcd[1].float().cuda(), batch_pcd[3].float().cuda()).cpu().numpy())  # pose/2 => because its pose*2
-            kp1_generic.append(torch.transpose(torch.bmm(torch.transpose(batch_pcd[1].cuda().double(), 1, 2), torch.transpose(batch_pred.double(), 1, 2)), 1, 2).cpu().numpy()[0])
+            pose_error.append(function_bank.pose_loss(batch_pred, batch_pred2, batch_pcd[1].float().to(device), batch_pcd[3].float().to(device)).cpu().numpy())  # pose/2 => because its pose*2
+            kp1_generic.append(torch.transpose(torch.bmm(torch.transpose(batch_pcd[1].to(device).double(), 1, 2), torch.transpose(batch_pred.double(), 1, 2)), 1, 2).cpu().numpy()[0])
             keypoints.append(batch_pred[0].cpu().numpy())
-            coverage_.append(function_bank.coverage(batch_pred, batch_pcd[0].cuda()).cpu().numpy()) # [10x3], [2048x3]
-            inclusivity_.append(torch.mean(function_bank.inclusivity(batch_pred[0], batch_pcd[0][0].cuda(), threshold=0.05)).cpu().numpy())  # [1x10x3], [1x2048x3]
+            coverage_.append(function_bank.coverage(batch_pred, batch_pcd[0].to(device)).cpu().numpy()) # [10x3], [2048x3]
+            inclusivity_.append(torch.mean(function_bank.inclusivity(batch_pred[0], batch_pcd[0][0].to(device), threshold=0.05)).cpu().numpy())  # [1x10x3], [1x2048x3]
 
             ''' Save the qualitative results'''
             if cfg.save_results and len(not_repeat) < 20:
@@ -98,10 +101,10 @@ def test_generic_pose(cfg):
 
 
 
-@hydra.main(config_path='config', config_name='config')
+@hydra.main(config_path='config', config_name='config', version_base=None)
 def main(cfg):
     omegaconf.OmegaConf.set_struct(cfg, False)
-    logger.info(cfg.pretty())
+    logger.info(omegaconf.OmegaConf.to_yaml(cfg))
 
     if cfg.split != "test":
         print("Please set cfg.split as \'test\' in the configuration file")

@@ -83,11 +83,11 @@ def train(cfg):
 
 
 
-@hydra.main(config_path='config', config_name='config')
+@hydra.main(config_path='config', config_name='config', version_base=None)
 def main(cfg):
     omegaconf.OmegaConf.set_struct(cfg, False)
     cfg.log_path = '{}_logs'.format(cfg.task)
-    logger.info(cfg.pretty())
+    logger.info(omegaconf.OmegaConf.to_yaml(cfg))
     cfg.task = 'generic'
     train(cfg)
 
